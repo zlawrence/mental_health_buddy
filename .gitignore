@@ -1,0 +1,129 @@
+############################
+# Build artifacts
+############################
+bin/
+obj/
+out/
+publish/
+
+############################
+# User-specific files
+############################
+*.user
+*.userosscache
+*.suo
+*.userprefs
+
+############################
+# IDE / Editor
+############################
+
+# Visual Studio
+.vs/
+*.vcxproj.user
+
+# VS Code
+.vscode/
+
+# JetBrains Rider
+.idea/
+*.sln.iml
+
+# Environment Variables
+.env
+.env.local
+.env.*.local    
+
+############################
+# Logs
+############################
+*.log
+logs/
+*.tlog
+
+############################
+# OS generated files
+############################
+.DS_Store
+Thumbs.db
+
+############################
+# NuGet
+############################
+*.nupkg
+*.snupkg
+packages/
+.nuget/
+project.lock.json
+project.fragment.lock.json
+artifacts/
+
+############################
+# Test results
+############################
+TestResults/
+*.trx
+*.coverage
+*.coveragexml
+
+############################
+# ASP.NET Core
+############################
+appsettings.Development.json
+appsettings.Local.json
+
+# Optional: ignore all appsettings except template
+# appsettings*.json
+# !appsettings.json
+
+############################
+# Secrets / sensitive
+############################
+secrets.json
+*.pfx
+*.key
+*.pem
+
+############################
+# Entity Framework
+############################
+Migrations/*.Designer.cs
+Migrations/*Snapshot.cs
+
+############################
+# Publish / deployment
+############################
+*.Publish.xml
+*.pubxml
+*.azurePubxml
+
+############################
+# Docker
+############################
+docker-compose.override.yml
+
+############################
+# Node (if using frontend)
+############################
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+############################
+# Coverage / reports
+############################
+coverage/
+*.lcov
+
+############################
+# Temporary files
+############################
+*.tmp
+*.temp
+*.swp
+
+############################
+# Generated files
+############################
+Generated/
