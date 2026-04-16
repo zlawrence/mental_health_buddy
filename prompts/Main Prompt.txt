@@ -1,0 +1,79 @@
+I would like to build a Mental Health system that consists of multiple parts:
+
+1. The sign up application, in which a patient can sign up to use the application.
+2. A web application that the patient therapist can be invited to create an account on, and then be able to set up guard rails for the conversations for the patient.
+3. A mental health AI chatbot that the patient can talk to at any time, express feelings, and the chatbot responds with curated information or answers that will help the patient alleviate their anxiety, improve their self confidence, aid in their depression, and generally help them with coping day to day with their negative thoughts. The business rules are:
+
+
+The idea behind this is that, as a person with anxiety and depression, 
+I can't and shouldn't talk to my therapist every day. However, it would be good to have a digital "buddy" to talk to that could listen to what I have to say, review any guard rails that have been set up by my therapist(s), determine a valid response that helps me to feel better or motivate me to continue through the day. 
+
+Business requirements
+Client Application - facing side - Mobile application
+- It should be authenticated with two factor authentication, preferrably biometric
+- The screen after successful authentication should be a chat window asking
+- If it's the next day after chatting, it should ask something like "How's our day going?" or "How are we doing?", ensuring they don't feel alone. 
+- If it's the same day, it should pick up from the last conversation, such as "So how did we make out with <<X>>?"
+- The patient should then be able to ask questions or make statements. 
+- The system should retrieve the guard rails or rules set up by the therapist (these should be defined or symbolic reasoning?)
+- The system should query the LLM with the questions or statements, but passing the therapy rules as well, so that the response uses the therapy rules. i.e. The patient gets anxious with the colour green, so no response should have the word "Green" in it. 
+- Should the system log the conversation response? yes. 
+- The system should also label the conversation, just like chatGPT
+Guardrail: If the question or statement isn't really an emotional item, it should say it's not really an expert on that, but pull up any information it can from Claude?
+Guardrail: If the question or statement can be related in any way to self harm or suicide, the system should notify the person's emergency contact and/or therapist via SMS or email. 
+
+
+Other Chat functionality
+- There should be a method to bring up previous chats and continue them. 
+- There should be a way to search previous chats for parts of conversations. Such as "Do you remember when we talked about my old pet?", and the system should list the conversations that - talked about the pet, displaying the first part of the conversation pertaining to the pet. 
+
+
+Settings
+My Therapists
+- This area allows a patient to manage their therapist and their access. 
+- The patient can invite a therapist to have access to their profile. 
+Required information - Therapist name (can be an alias), email
+SECURITY: Patients can set access levels for therapists, whether its access to the patients Health-buddy chats, set up guard rails.
+- The patient can also turn off access to a therapist. 
+
+My Info
+- The patient can enter as much or as little information about their personal information as they'd like. 
+- Required information - Username
+- Optional information - Phone number
+- Guard Rail: Do not collect their conditions. i.e. anxiety, depression. This leads to HIPAA territory. 
+
+
+Therapist center Application  - Web site but mobile first responsive. 
+- The therapist would receive a link to set themselves up with a login.
+- User role for access would be Therapist.
+- The credentials would be username/biometric 
+- Once the therapist has approved and created their login, they would be able to see a dashboard with the patients' conversations (if security enables it) and guard rails (if security enables it)
+- The therapist will be able to expand each of the conversations
+- The therapist will have the ability to add or remove guard rails. 
+- Guard rails are entered as free text. 
+- There will be an area that the therapist can change their password. 
+
+Admin Portal Application - 
+Login will only allow users of "Admin" role
+- An admin will have the ability to add or remove other admins
+- An Admin will have the ability to reset a patient's or therapists' login credentials. 
+- An admin will have the ability to set a patient to be inactive or active. 
+- There should be an audit logged for all actions that take place on the admin portal. 
+
+
+Technology stack
+- The system should use clean architecture and a NoSQL database. 
+- API, infrastructure, application, and domain layers should be in .net core/C#
+- The API, infrastructure, application, and domain layers should be their own projects. The API should reference application, which in turn references the infrastructure and domain projects
+- All web applications should be in typescript with react.js/next.js
+- Each web application should be it's own project
+- The iOS mobile application should be written in Swift. 
+- The iOS mobile application should be its own project
+- It will use third party oauth2 compliant service, like Auth0 or Cognito for authentication. 
+- The API will use middleware to authenticate the request, confirming token validation against the third party oauth provider
+- The system will use opentelemetry for observability and instrumentation
+
+General
+- Unit tests should be written for each layer. NUnit for .NET core and Jest.js for any web applications
+- Integration tests should be written for all connections between the web application and the APIs, as well as between the mobile application and the APIs.  
+
