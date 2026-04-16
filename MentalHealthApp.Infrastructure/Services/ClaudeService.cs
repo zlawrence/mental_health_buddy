@@ -2,6 +2,8 @@ using Anthropic;
 using Anthropic.Models.Messages;
 using MentalHealthApp.Application.Services;
 using MentalHealthApp.Fx;
+using Microsoft.SemanticKernel;
+using Microsoft.SemanticKernel.ChatCompletion;
 
 namespace MentalHealthApp.Infrastructure.Services;
 
@@ -25,45 +27,43 @@ public class ClaudeService : ILLMTherapyService
     {
         var systemPrompt = BuildSystemPrompt(guardRailInstructions);
 
-        var client = new AnthropicClient(new Anthropic.Core.ClientOptions
-        { 
-            ApiKey = _apiKey,
-        });
+        var chatHistory = new ChatHistory();
+        chatHistory.AddSystemMessage(systemPrompt);
 
-        var messages = conversationHistory
-            .Select(m => new MessageParam
+        foreach (var message in conversationHistory)
+        {
+            if (message.role == "user")
             {
-                Role = m.role == "user" ? Role.User : Role.Assistant,
-                Content = m.content,
-            })
-            .Append(new MessageParam
+                chatHistory.AddUserMessage(message.content);
+            }
+            else
             {
-                Role = Role.User,
-                Content = request.Message,
-            })
-            .ToList();
+                chatHistory.AddAssistantMessage(message.content);
+            }
+        }
 
-        Message response;
+        chatHistory.AddUserMessage(request.Message);
+
+        var kernel = Kernel.CreateBuilder().Build();
+        var service = new AnthropicChatCompletionService(_apiKey, _modelId, MaxTokens);
+        var promptSettings = new PromptExecutionSettings
+        {
+            ServiceId = "anthropic-chat",
+            ModelId = _modelId,
+        };
+
+        ChatMessageContent responseContent;
 
         try
         {
-            response = await client.Messages.Create(
-                new MessageCreateParams
-                {
-                    Model = _modelId,
-                    MaxTokens = MaxTokens,
-                    System = systemPrompt,
-                    Messages = messages,
-                },
-                cancellationToken);
+            responseContent = await service.GetChatMessageContentAsync(chatHistory, promptSettings, kernel, cancellationToken);
         }
         catch (Exception ex)
         {
             throw new Exception("Failure to retrieve messages for the conversation", ex);
         }
 
-        if (response.Content.Count == 0 ||
-            !response.Content[0].TryPickText(out var textBlock))
+        if (responseContent == null || string.IsNullOrWhiteSpace(responseContent.Content))
         {
             return new ChatResponse
             {
@@ -74,7 +74,7 @@ public class ClaudeService : ILLMTherapyService
 
         return new ChatResponse
         {
-            Message = textBlock.Text,
+            Message = responseContent.Content.Trim(),
             RiskLevel = RiskLevel.Normal
         };
     }
