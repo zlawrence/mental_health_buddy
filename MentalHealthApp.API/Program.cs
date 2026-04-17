@@ -25,6 +25,18 @@ builder.Services.AddEndpointsApiExplorer();
 // AutoMapper
 builder.Services.AddAutoMapper(typeof(MentalHealthApp.Application.Mappings.MappingProfile).Assembly);
 
+// Enable CORS for local frontend during development
+builder.Services.AddCors(options =>
+{
+    // The calls could be coming from any IP. 
+    options.AddPolicy("AllowLocalhost53739", policy =>
+    {
+        policy.AllowAnyOrigin()
+                .AllowAnyHeader()
+                .AllowAnyMethod();
+    });
+});
+
 // MongoDB setup
 var mongoSettings = builder.Configuration.GetSection("MongoDb");
 var connectionString = mongoSettings["ConnectionString"];
@@ -168,6 +180,9 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+
+// Enable CORS policy
+app.UseCors("AllowLocalhost53739");
 
 app.UseAuthentication();
 app.UseAuthorization();

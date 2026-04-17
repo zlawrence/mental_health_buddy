@@ -49,6 +49,10 @@ class _LoginScreenState extends State<LoginScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
+            Image.asset('assets/anxietybuddy.png', width: 120, height: 120),
+            const SizedBox(height: 24),
+            const Text('Patient Login', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 24),
             TextField(
               controller: _emailController,
               decoration: const InputDecoration(labelText: 'Email or username'),

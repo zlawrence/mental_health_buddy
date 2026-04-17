@@ -11,7 +11,8 @@ I can't and shouldn't talk to my therapist every day. However, it would be good 
 Business requirements
 Client Application - facing side - Mobile application
 - It should be authenticated with two factor authentication, preferrably biometric
-- The screen after successful authentication should be a chat window asking
+- The screen after successful authentication should be a chat window
+- The screen should also have the ability to see and continue previous chats.
 - If it's the next day after chatting, it should ask something like "How's our day going?" or "How are we doing?", ensuring they don't feel alone. 
 - If it's the same day, it should pick up from the last conversation, such as "So how did we make out with <<X>>?"
 - The patient should then be able to ask questions or make statements. 

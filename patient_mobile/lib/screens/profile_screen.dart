@@ -73,7 +73,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Profile')),
+      appBar: AppBar(
+        title: Row(
+          children: [
+            Image.asset('assets/anxietybuddy.png', width: 32, height: 32),
+            const SizedBox(width: 12),
+            const Text('Profile'),
+          ],
+        ),
+      ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: _isLoading

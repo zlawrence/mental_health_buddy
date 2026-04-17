@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 class ApiService {
-  static const baseUrl = 'http://10.0.2.2:5000';
+  static const baseUrl = 'https://localhost:7046';
   String? authToken;
 
   Map<String, String> _headers() {
@@ -57,33 +57,63 @@ class ApiService {
     }
   }
 
-  Future<List<dynamic>> getGuardRails() async {
+  Future<List<dynamic>> getConversations() async {
     final response = await http.get(
-      Uri.parse('$baseUrl/api/patients/me/guard-rails'),
+      Uri.parse('$baseUrl/api/conversations'),
       headers: _headers(),
     );
 
     if (response.statusCode != 200) {
-      throw Exception('Unable to load guard rails');
+      throw Exception('Unable to load conversations');
     }
 
     return jsonDecode(response.body) as List<dynamic>;
   }
 
-  Future<void> createGuardRail(String keyword, String action, String? replacement) async {
+  Future<Map<String, dynamic>> createConversation(String title) async {
     final response = await http.post(
-      Uri.parse('$baseUrl/api/patients/me/guard-rails'),
+      Uri.parse('$baseUrl/api/conversations'),
       headers: _headers(),
       body: jsonEncode({
-        'keyword': keyword,
-        'action': action,
-        'replacement': replacement,
+        'title': title,
       }),
     );
 
-    if (response.statusCode != 201) {
-      throw Exception('Unable to create guard rail');
+    if (response.statusCode != 200) {
+      throw Exception('Unable to create conversation');
     }
+
+    return jsonDecode(response.body) as Map<String, dynamic>;
+  }
+
+  Future<List<dynamic>> getConversationMessages(String conversationId) async {
+    final response = await http.get(
+      Uri.parse('$baseUrl/api/conversations/$conversationId/messages'),
+      headers: _headers(),
+    );
+
+    if (response.statusCode != 200) {
+      throw Exception('Unable to load conversation messages');
+    }
+
+    return jsonDecode(response.body) as List<dynamic>;
+  }
+
+  Future<Map<String, dynamic>> sendMessage(String conversationId, String message) async {
+    final response = await http.post(
+      Uri.parse('$baseUrl/api/conversations/send-message'),
+      headers: _headers(),
+      body: jsonEncode({
+        'conversationId': conversationId,
+        'message': message,
+      }),
+    );
+
+    if (response.statusCode != 200) {
+      throw Exception('Unable to send message');
+    }
+
+    return jsonDecode(response.body) as Map<String, dynamic>;
   }
 
   Future<void> inviteTherapist(String therapistEmail) async {

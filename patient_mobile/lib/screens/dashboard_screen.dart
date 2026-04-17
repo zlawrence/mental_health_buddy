@@ -13,7 +13,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
   bool _loading = false;
   String? _error;
   Map<String, dynamic>? _profile;
-  List<dynamic> _guardRails = [];
+  List<dynamic> _conversations = [];
+  bool _todayConversationOpened = false;
 
   @override
   void didChangeDependencies() {
@@ -30,12 +31,23 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
     try {
       final profile = await api.getProfile();
-      final guardRails = await api.getGuardRails();
+      final conversations = await api.getConversations();
 
       setState(() {
         _profile = profile;
-        _guardRails = guardRails;
+        _conversations = conversations;
       });
+
+      if (!_todayConversationOpened) {
+        final todayConversation = _findTodaysConversation(conversations);
+        if (todayConversation != null) {
+          _todayConversationOpened = true;
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (!mounted) return;
+            _openConversation(todayConversation);
+          });
+        }
+      }
     } catch (e) {
       setState(() {
         _error = e.toString();
@@ -59,12 +71,93 @@ class _DashboardScreenState extends State<DashboardScreen> {
     await _loadData();
   }
 
+  List<Map<String, dynamic>> get _recentConversations {
+    final sorted = _conversations
+        .cast<Map<String, dynamic>>()
+        .toList();
+
+    sorted.sort((a, b) {
+      final aDate = DateTime.tryParse(a['createdAt'] ?? '') ?? DateTime.fromMillisecondsSinceEpoch(0);
+      final bDate = DateTime.tryParse(b['createdAt'] ?? '') ?? DateTime.fromMillisecondsSinceEpoch(0);
+      return bDate.compareTo(aDate);
+    });
+
+    return sorted.take(3).toList();
+  }
+
+  Map<String, dynamic>? _findTodaysConversation(List<dynamic> conversations) {
+    final now = DateTime.now().toLocal();
+    final todayConversations = conversations.cast<Map<String, dynamic>>().where((convo) {
+      final createdAt = DateTime.tryParse(convo['createdAt'] ?? '');
+      if (createdAt == null) return false;
+      final local = createdAt.toLocal();
+      return local.year == now.year && local.month == now.month && local.day == now.day;
+    }).toList();
+
+    if (todayConversations.isEmpty) return null;
+
+    todayConversations.sort((a, b) {
+      final aDate = DateTime.tryParse(a['createdAt'] ?? '') ?? DateTime.fromMillisecondsSinceEpoch(0);
+      final bDate = DateTime.tryParse(b['createdAt'] ?? '') ?? DateTime.fromMillisecondsSinceEpoch(0);
+      return bDate.compareTo(aDate);
+    });
+
+    return todayConversations.first;
+  }
+
+  String _generateChatTitle() {
+    final now = DateTime.now().toLocal();
+    const weekdayNames = [
+      'Monday',
+      'Tuesday',
+      'Wednesday',
+      'Thursday',
+      'Friday',
+      'Saturday',
+      'Sunday',
+    ];
+    const monthNames = [
+      'January',
+      'February',
+      'March',
+      'April',
+      'May',
+      'June',
+      'July',
+      'August',
+      'September',
+      'October',
+      'November',
+      'December',
+    ];
+    final weekday = weekdayNames[now.weekday - 1];
+    final month = monthNames[now.month - 1];
+    final hour = now.hour == 0 ? 12 : (now.hour > 12 ? now.hour - 12 : now.hour);
+    final minute = now.minute.toString().padLeft(2, '0');
+    final ampm = now.hour >= 12 ? 'PM' : 'AM';
+    return '$weekday $month ${now.day}, ${now.year} $hour:$minute $ampm';
+  }
+
+  void _openConversation(Map<String, dynamic> convo) {
+    Navigator.pushNamed(
+      context,
+      '/conversation',
+      arguments: {
+        'api': api,
+        'conversation': convo,
+      },
+    );
+  }
+
   Future<void> _inviteTherapist() async {
     final emailController = TextEditingController();
+    final hostContext = context;
+    final navigator = Navigator.of(hostContext);
+    final messenger = ScaffoldMessenger.of(hostContext);
 
     await showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
+      context: hostContext,
+      builder: (dialogContext) => AlertDialog(
         title: const Text('Invite Therapist'),
         content: TextField(
           controller: emailController,
@@ -72,7 +165,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.pop(dialogContext),
             child: const Text('Cancel'),
           ),
           ElevatedButton(
@@ -81,19 +174,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
               if (email.isEmpty) return;
               try {
                 await api.inviteTherapist(email);
-                if (mounted) {
-                  Navigator.pop(context);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Invitation sent')),
-                  );
-                }
+                if (!mounted) return;
+                navigator.pop();
+                messenger.showSnackBar(
+                  const SnackBar(content: Text('Invitation sent')),
+                );
               } catch (e) {
-                if (mounted) {
-                  Navigator.pop(context);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text(e.toString())),
-                  );
-                }
+                if (!mounted) return;
+                navigator.pop();
+                messenger.showSnackBar(
+                  SnackBar(content: Text(e.toString())),
+                );
               }
             },
             child: const Text('Send'),
@@ -103,90 +194,34 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  Future<void> _createGuardRail() async {
-    final keywordController = TextEditingController();
-    final replacementController = TextEditingController();
-    String selectedAction = 'remove';
-
-    await showDialog(
-      context: context,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setState) => AlertDialog(
-          title: const Text('Create Guard Rail'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: keywordController,
-                decoration: const InputDecoration(labelText: 'Keyword'),
-              ),
-              const SizedBox(height: 16),
-              DropdownButtonFormField<String>(
-                value: selectedAction,
-                decoration: const InputDecoration(labelText: 'Action'),
-                items: const [
-                  DropdownMenuItem(value: 'remove', child: Text('Remove')),
-                  DropdownMenuItem(value: 'replace', child: Text('Replace')),
-                ],
-                onChanged: (value) {
-                  setState(() {
-                    selectedAction = value!;
-                  });
-                },
-              ),
-              if (selectedAction == 'replace') ...[
-                const SizedBox(height: 16),
-                TextField(
-                  controller: replacementController,
-                  decoration: const InputDecoration(labelText: 'Replacement text'),
-                ),
-              ],
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel'),
-            ),
-            ElevatedButton(
-              onPressed: () async {
-                final keyword = keywordController.text.trim();
-                final replacement = selectedAction == 'replace' ? replacementController.text.trim() : null;
-
-                if (keyword.isEmpty) return;
-                if (selectedAction == 'replace' && (replacement == null || replacement.isEmpty)) return;
-
-                try {
-                  await api.createGuardRail(keyword, selectedAction, replacement);
-                  if (mounted) {
-                    Navigator.pop(context);
-                    await _refresh();
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Guard rail created')),
-                    );
-                  }
-                } catch (e) {
-                  if (mounted) {
-                    Navigator.pop(context);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text(e.toString())),
-                    );
-                  }
-                }
-              },
-              child: const Text('Create'),
-            ),
-          ],
-        ),
-      ),
-    );
+  Future<void> _createConversation() async {
+    final title = _generateChatTitle();
+    try {
+      final conversation = await api.createConversation(title);
+      if (!mounted) return;
+      setState(() {
+        _conversations.insert(0, conversation);
+      });
+      _openConversation(conversation);
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.toString())),
+      );
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Patient Dashboard'),
+        title: Row(
+          children: [
+            Image.asset('assets/anxietybuddy.png', width: 32, height: 32),
+            const SizedBox(width: 12),
+            const Text('Patient Dashboard'),
+          ],
+        ),
         actions: [
           IconButton(onPressed: _refresh, icon: const Icon(Icons.refresh)),
           IconButton(onPressed: _openProfile, icon: const Icon(Icons.person)),
@@ -206,28 +241,68 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       const SizedBox(height: 16),
                       Text('Email: ${_profile?['email'] ?? '-'}'),
                       Text('Phone: ${_profile?['phoneNumber'] ?? '-'}'),
+                      const SizedBox(height: 20),
+                      const Text('Recent Conversations', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                      const SizedBox(height: 8),
+                      _recentConversations.isEmpty
+                          ? const Text('No recent conversations yet.')
+                          : Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: _recentConversations.map((convo) {
+                                final createdAt = DateTime.tryParse(convo['createdAt'] ?? '')?.toLocal();
+                                return Padding(
+                                  padding: const EdgeInsets.only(bottom: 8.0),
+                                  child: Text(
+                                    '${convo['title'] ?? 'Untitled'} • ${createdAt != null ? '${createdAt.month}/${createdAt.day}/${createdAt.year}' : 'Unknown date'}',
+                                  ),
+                                );
+                              }).toList(),
+                            ),
                       const SizedBox(height: 16),
-                      const Text('Guard Rails', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                      const Text('Conversations', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                       const SizedBox(height: 8),
                       Expanded(
-                        child: _guardRails.isEmpty
-                            ? const Text('No guard rails configured')
+                        child: _conversations.isEmpty
+                            ? const Center(child: Text('No conversations yet. Start a new one to begin.'))
                             : ListView.builder(
-                                itemCount: _guardRails.length,
+                                itemCount: _conversations.length,
                                 itemBuilder: (context, index) {
-                                  final rail = _guardRails[index] as Map<String, dynamic>;
+                                  final convo = _conversations[index] as Map<String, dynamic>;
+                                  final createdAt = DateTime.tryParse(convo['createdAt'] ?? '')?.toLocal();
                                   return Card(
                                     child: ListTile(
-                                      title: Text(rail['keyword'] ?? ''),
-                                      subtitle: Text('Action: ${rail['action']}'),
+                                      title: Text(convo['title'] ?? 'Untitled'),
+                                      subtitle: Text(
+                                        'Messages: ${convo['messageCount'] ?? 0} • Started: ${createdAt != null ? '${createdAt.month}/${createdAt.day}/${createdAt.year}' : 'Unknown'}',
+                                      ),
+                                      onTap: () {
+                                        Navigator.pushNamed(
+                                          context,
+                                          '/conversation',
+                                          arguments: {
+                                            'api': api,
+                                            'conversation': convo,
+                                          },
+                                        );
+                                      },
                                     ),
                                   );
                                 },
                               ),
                       ),
-                      ElevatedButton(onPressed: _createGuardRail, child: const Text('Create Guard Rail')),
-                      const SizedBox(height: 8),
-                      ElevatedButton(onPressed: _inviteTherapist, child: const Text('Invite Therapist')),
+                      const SizedBox(height: 12),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: ElevatedButton(
+                              onPressed: _createConversation,
+                              child: const Text('New Chat'),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          ElevatedButton(onPressed: _inviteTherapist, child: const Text('Invite Therapist')),
+                        ],
+                      ),
                     ],
                   ),
       ),
