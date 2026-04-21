@@ -10,9 +10,9 @@ I can't and shouldn't talk to my therapist every day. However, it would be good 
 
 Business requirements
 Client Application - facing side - Mobile application
+
 - It should be authenticated with two factor authentication, preferrably biometric
-- The screen after successful authentication should be a chat window
-- The screen should also have the ability to see and continue previous chats.
+- The screen after successful authentication should be a chat window asking
 - If it's the next day after chatting, it should ask something like "How's our day going?" or "How are we doing?", ensuring they don't feel alone. 
 - If it's the same day, it should pick up from the last conversation, such as "So how did we make out with <<X>>?"
 - The patient should then be able to ask questions or make statements. 
@@ -22,7 +22,13 @@ Client Application - facing side - Mobile application
 - The system should also label the conversation, just like chatGPT
 Guardrail: If the question or statement isn't really an emotional item, it should say it's not really an expert on that, but pull up any information it can from Claude?
 Guardrail: If the question or statement can be related in any way to self harm or suicide, the system should notify the person's emergency contact and/or therapist via SMS or email. 
-
+- From the first screen (login screen), if the user doesn't have credentials, the user should have the ability to sign up for an account. 
+- The sign up screen should take in the minimal user information: username, email, phone number, and password. 
+- The email must be unique for the system.
+- If the email has already been used, the patient should be informed to use a different email. 
+- The patient will also be able to pay for their subscription of $5 per month through the stripe hosted payment portal (https://docs.stripe.com/payments/checkout)
+- The system should save the dates of subscription purchase and renewal dates. 
+- On the user profile screen, there must be a way for the patient to unsubscribe, which will contact stripe to cancel their subscription
 
 Other Chat functionality
 - There should be a method to bring up previous chats and continue them. 
@@ -60,6 +66,30 @@ Login will only allow users of "Admin" role
 - An Admin will have the ability to reset a patient's or therapists' login credentials. 
 - An admin will have the ability to set a patient to be inactive or active. 
 - There should be an audit logged for all actions that take place on the admin portal. 
+
+Overall Architecture
+[ Client (Mobile/Web Chat) ]
+            ↓
+[ API Layer (.NET) ]
+            ↓
+[ Orchestration Layer ]
+   - Conversation Engine
+   - Risk Classifier
+   - Prompt Builder
+   - Policy Engine
+            ↓
+[ AI Layer ]
+   - LLM Provider
+   - Embeddings (optional)
+            ↓
+[ Safety Layer ]
+   - Pre-checks (input)
+   - Post-checks (output)
+            ↓
+[ Data Layer ]
+   - Guardrails (therapist)
+   - Conversations
+   - Audit logs
 
 
 Technology stack

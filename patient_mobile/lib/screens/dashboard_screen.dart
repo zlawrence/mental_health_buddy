@@ -149,50 +149,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  Future<void> _inviteTherapist() async {
-    final emailController = TextEditingController();
-    final hostContext = context;
-    final navigator = Navigator.of(hostContext);
-    final messenger = ScaffoldMessenger.of(hostContext);
 
-    await showDialog(
-      context: hostContext,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Invite Therapist'),
-        content: TextField(
-          controller: emailController,
-          decoration: const InputDecoration(labelText: 'Therapist email'),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              final email = emailController.text.trim();
-              if (email.isEmpty) return;
-              try {
-                await api.inviteTherapist(email);
-                if (!mounted) return;
-                navigator.pop();
-                messenger.showSnackBar(
-                  const SnackBar(content: Text('Invitation sent')),
-                );
-              } catch (e) {
-                if (!mounted) return;
-                navigator.pop();
-                messenger.showSnackBar(
-                  SnackBar(content: Text(e.toString())),
-                );
-              }
-            },
-            child: const Text('Send'),
-          ),
-        ],
-      ),
-    );
-  }
 
   Future<void> _createConversation() async {
     final title = _generateChatTitle();
@@ -217,9 +174,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
       appBar: AppBar(
         title: Row(
           children: [
-            Image.asset('assets/anxietybuddy.png', width: 32, height: 32),
+            Image.asset('assets/ab_face_logo.gif', width: 32, height: 32),
             const SizedBox(width: 12),
-            const Text('Patient Dashboard'),
+            Text('${_profile?['username'] ?? 'Patient'}', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
           ],
         ),
         actions: [
@@ -237,27 +194,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 : Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('Welcome, ${_profile?['username'] ?? 'Patient'}', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-                      const SizedBox(height: 16),
-                      Text('Email: ${_profile?['email'] ?? '-'}'),
-                      Text('Phone: ${_profile?['phoneNumber'] ?? '-'}'),
                       const SizedBox(height: 20),
-                      const Text('Recent Conversations', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                      const SizedBox(height: 8),
-                      _recentConversations.isEmpty
-                          ? const Text('No recent conversations yet.')
-                          : Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: _recentConversations.map((convo) {
-                                final createdAt = DateTime.tryParse(convo['createdAt'] ?? '')?.toLocal();
-                                return Padding(
-                                  padding: const EdgeInsets.only(bottom: 8.0),
-                                  child: Text(
-                                    '${convo['title'] ?? 'Untitled'} • ${createdAt != null ? '${createdAt.month}/${createdAt.day}/${createdAt.year}' : 'Unknown date'}',
-                                  ),
-                                );
-                              }).toList(),
-                            ),
+                      ElevatedButton(
+                        onPressed: _createConversation,
+                        child: const Text('New Chat'),
+                      ),
                       const SizedBox(height: 16),
                       const Text('Conversations', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                       const SizedBox(height: 8),
@@ -270,10 +211,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                   final convo = _conversations[index] as Map<String, dynamic>;
                                   final createdAt = DateTime.tryParse(convo['createdAt'] ?? '')?.toLocal();
                                   return Card(
+                                    color: const Color(0xff6f5acd),
                                     child: ListTile(
-                                      title: Text(convo['title'] ?? 'Untitled'),
+                                      title: Text(convo['title'] ?? 'Untitled', style: const TextStyle(color: Color(0xfffcf7e4))),
                                       subtitle: Text(
                                         'Messages: ${convo['messageCount'] ?? 0} • Started: ${createdAt != null ? '${createdAt.month}/${createdAt.day}/${createdAt.year}' : 'Unknown'}',
+                                        style: const TextStyle(color: Color(0xfffcf7e4)),
                                       ),
                                       onTap: () {
                                         Navigator.pushNamed(
@@ -290,19 +233,23 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                 },
                               ),
                       ),
-                      const SizedBox(height: 12),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: ElevatedButton(
-                              onPressed: _createConversation,
-                              child: const Text('New Chat'),
+                      const SizedBox(height: 16),
+                      const Text('Recent Conversations', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                      const SizedBox(height: 8),
+                      _recentConversations.isEmpty
+                          ? const Text('No recent conversations yet.')
+                          : Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: _recentConversations.map((convo) {
+                                final createdAt = DateTime.tryParse(convo['createdAt'] ?? '')?.toLocal();
+                                return Padding(
+                                  padding: const EdgeInsets.only(bottom: 8.0),
+                                  child: Text(
+                                    '${convo['title'] ?? 'Untitled'} • ${createdAt != null ? '${createdAt.month}/${createdAt.day}/${createdAt.year}' : 'Unknown date'}',
+                                  ),
+                                );
+                              }).toList(),
                             ),
-                          ),
-                          const SizedBox(width: 12),
-                          ElevatedButton(onPressed: _inviteTherapist, child: const Text('Invite Therapist')),
-                        ],
-                      ),
                     ],
                   ),
       ),

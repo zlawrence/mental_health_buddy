@@ -1,2 +1,3 @@
 On the dashboard page, change the title of a conversation window to "Chat", and clicking a "New Chat" should set the conversation title to be todays date with time, i.e. Friday April 17,2026, and should not prompt the patient to enter a title. It should automatically open a chat window. If there already is a chat for today's date, the chat window for that date should display right after logging in. 
 
+When sending a message, the current conversation window should show three bouncing balls as a "please wait" idea. The three balls should go away before displaying the response

@@ -43,34 +43,52 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Patient Login')),
+      backgroundColor: const Color(0xfffcf7e4),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
+        
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Image.asset('assets/anxietybuddy.png', width: 120, height: 120),
+            Image.asset('assets/anxietybuddy_splash.png', width: 350, height: 350),
             const SizedBox(height: 24),
-            const Text('Patient Login', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
             const SizedBox(height: 24),
             TextField(
               controller: _emailController,
-              decoration: const InputDecoration(labelText: 'Email or username'),
+              decoration: const InputDecoration(labelText: 'Email or username', 
+                fillColor:  Color(0xff2b1392),
+                labelStyle: TextStyle(
+                  fontWeight: FontWeight.bold, // Makes the label bold
+                )
+                ),
+            
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 12, width:600),
             TextField(
               controller: _passwordController,
-              decoration: const InputDecoration(labelText: 'Password'),
+              decoration: const InputDecoration(labelText: 'Password', 
+                fillColor:  Color(0xff2b1392),
+            
+                labelStyle: TextStyle(
+                  fontWeight: FontWeight.bold, // Makes the label bold
+                )
+                ),
               obscureText: true,
             ),
             const SizedBox(height: 24),
             if (_error != null)
               Text(_error!, style: const TextStyle(color: Colors.red)),
-            ElevatedButton(
-              onPressed: _isLoading ? null : _login,
-              child: _isLoading
-                  ? const CircularProgressIndicator()
-                  : const Text('Login'),
+            Transform.translate(
+              offset: const Offset(0, -10),
+              child: SizedBox(
+                width: 300,
+                child: ElevatedButton(
+                  onPressed: _isLoading ? null : _login,
+                  child: _isLoading
+                      ? const CircularProgressIndicator()
+                      : const Text('Login'),
+                ),
+              ),
             ),
           ],
         ),
