@@ -11,6 +11,7 @@ public class AuthenticationService : IAuthenticationService
     private readonly IPatientProfileRepository _patientProfileRepository;
     private readonly ITherapistInvitationRepository _invitationRepository;
     private readonly ITherapistAccessRepository _therapistAccessRepository;
+    private readonly ISubscriptionRepository _subscriptionRepository;
     private readonly IPasswordHashingService _passwordHashingService;
     private readonly IJwtTokenService _jwtTokenService;
 
@@ -19,6 +20,7 @@ public class AuthenticationService : IAuthenticationService
         IPatientProfileRepository patientProfileRepository,
         ITherapistInvitationRepository invitationRepository,
         ITherapistAccessRepository therapistAccessRepository,
+        ISubscriptionRepository subscriptionRepository,
         IPasswordHashingService passwordHashingService,
         IJwtTokenService jwtTokenService)
     {
@@ -26,12 +28,27 @@ public class AuthenticationService : IAuthenticationService
         _patientProfileRepository = patientProfileRepository;
         _invitationRepository = invitationRepository;
         _therapistAccessRepository = therapistAccessRepository;
+        _subscriptionRepository = subscriptionRepository;
         _passwordHashingService = passwordHashingService;
         _jwtTokenService = jwtTokenService;
     }
 
+    private static void ValidatePasswordComplexity(string password)
+    {
+        if (password.Length < 12 || password.Length > 16)
+            throw new InvalidOperationException("Password must be 12–16 characters long");
+        if (!password.Any(char.IsUpper))
+            throw new InvalidOperationException("Password must contain at least 1 uppercase letter");
+        if (!password.Any(char.IsLower))
+            throw new InvalidOperationException("Password must contain at least 1 lowercase letter");
+        if (password.Count(c => !char.IsLetterOrDigit(c)) < 2)
+            throw new InvalidOperationException("Password must contain at least 2 special characters");
+    }
+
     public async Task<RegisterPatientResponse> RegisterPatientAsync(RegisterPatientRequest request, CancellationToken cancellationToken = default)
     {
+        ValidatePasswordComplexity(request.Password);
+
         // Check if email already exists
         var existingUser = await _userRepository.GetByEmailAsync(request.Email, cancellationToken);
         if (existingUser != null)
@@ -89,12 +106,31 @@ public class AuthenticationService : IAuthenticationService
         // Generate JWT
         var token = _jwtTokenService.GenerateToken(user.Id, user.Role.ToString(), user.Email);
 
+        var subscription = await _subscriptionRepository.GetByPatientUserIdAsync(user.Id, cancellationToken);
+        var requiresSubscription = subscription == null || subscription.Status != SubscriptionStatus.Active;
+
         return new LoginResponse
         {
             UserId = user.Id,
             Email = user.Email,
             Username = user.Username,
-            Token = token
+            Token = token,
+            RequiresSubscription = requiresSubscription
+        };
+    }
+
+    public async Task<CheckAvailabilityResponse> CheckAvailabilityAsync(string? username, string? email, CancellationToken cancellationToken = default)
+    {
+        var usernameAvailable = string.IsNullOrEmpty(username) ||
+            await _userRepository.GetByUsernameAsync(username, cancellationToken) == null;
+
+        var emailAvailable = string.IsNullOrEmpty(email) ||
+            await _userRepository.GetByEmailAsync(email, cancellationToken) == null;
+
+        return new CheckAvailabilityResponse
+        {
+            UsernameAvailable = usernameAvailable,
+            EmailAvailable = emailAvailable
         };
     }
 

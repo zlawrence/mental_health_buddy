@@ -122,6 +122,6 @@ public class RiskClassifier : IRiskClassifier
 
     private static bool ContainsKeyword(string lowerMessage, string[] keywords)
     {
-        return keywords.Any(keyword => Regex.IsMatch(lowerMessage, $"\b{Regex.Escape(keyword)}\b", RegexOptions.IgnoreCase));
+        return keywords.Any(keyword => Regex.IsMatch(lowerMessage, $@"\b{Regex.Escape(keyword)}\b", RegexOptions.IgnoreCase));
     }
 }

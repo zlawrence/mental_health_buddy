@@ -28,6 +28,13 @@ public class LoginResponse
     public string Email { get; set; } = string.Empty;
     public string Username { get; set; } = string.Empty;
     public string Token { get; set; } = string.Empty;
+    public bool RequiresSubscription { get; set; }
+}
+
+public class CheckAvailabilityResponse
+{
+    public bool UsernameAvailable { get; set; }
+    public bool EmailAvailable { get; set; }
 }
 
 public class TherapistSetupRequest

@@ -28,10 +28,16 @@ class _LoginScreenState extends State<LoginScreen> {
       );
       _api.authToken = result['token'] as String?;
       if (!mounted) return;
-      Navigator.pushReplacementNamed(context, '/dashboard', arguments: _api);
+
+      final requiresSubscription = result['requiresSubscription'] as bool? ?? false;
+      if (requiresSubscription) {
+        Navigator.pushReplacementNamed(context, '/subscription-required', arguments: _api);
+      } else {
+        Navigator.pushReplacementNamed(context, '/dashboard', arguments: _api);
+      }
     } catch (e) {
       setState(() {
-        _error = e.toString();
+        _error = e.toString().replaceFirst('Exception: ', '');
       });
     } finally {
       setState(() {
@@ -89,6 +95,10 @@ class _LoginScreenState extends State<LoginScreen> {
                       : const Text('Login'),
                 ),
               ),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pushNamed(context, '/signup'),
+              child: const Text("Don't have an account? Sign up"),
             ),
           ],
         ),

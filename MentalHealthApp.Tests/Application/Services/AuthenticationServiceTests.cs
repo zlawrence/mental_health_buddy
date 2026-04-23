@@ -16,6 +16,8 @@ public class AuthenticationServiceTests
     private Mock<ITherapistInvitationRepository> _invitationRepositoryMock;
     private Mock<ITherapistAccessRepository> _therapistAccessRepositoryMock;
     private Mock<IPasswordHashingService> _passwordHashingServiceMock;
+    private Mock<ISubscriptionRepository> _subscriptionRepositoryMock;
+    // private Mock<ISubscriptionService> _subscriptionServiceMock;
     private Mock<IJwtTokenService> _jwtTokenServiceMock;
     private AuthenticationService _authenticationService;
 
@@ -26,6 +28,7 @@ public class AuthenticationServiceTests
         _patientProfileRepositoryMock = new Mock<IPatientProfileRepository>();
         _invitationRepositoryMock = new Mock<ITherapistInvitationRepository>();
         _therapistAccessRepositoryMock = new Mock<ITherapistAccessRepository>();
+        _subscriptionRepositoryMock = new Mock<ISubscriptionRepository>();
         _passwordHashingServiceMock = new Mock<IPasswordHashingService>();
         _jwtTokenServiceMock = new Mock<IJwtTokenService>();
 
@@ -34,6 +37,7 @@ public class AuthenticationServiceTests
             _patientProfileRepositoryMock.Object,
             _invitationRepositoryMock.Object,
             _therapistAccessRepositoryMock.Object,
+            _subscriptionRepositoryMock.Object,
             _passwordHashingServiceMock.Object,
             _jwtTokenServiceMock.Object);
     }
@@ -46,8 +50,8 @@ public class AuthenticationServiceTests
         {
             Email = "test@example.com",
             Username = "testuser",
-            Password = "password123",
-            ConfirmPassword = "password123",
+            Password = "password123!@Q",
+            ConfirmPassword = "password123!@Q",
             PhoneNumber = "+1234567890"
         };
 
@@ -91,6 +95,29 @@ public class AuthenticationServiceTests
         {
             Email = "existing@example.com",
             Username = "testuser",
+            Password = "password123!@Q",
+            ConfirmPassword = "password123!@Q"
+        };
+
+        var existingUser = new User { Id = "existing", Email = request.Email };
+
+        _userRepositoryMock.Setup(x => x.GetByEmailAsync(request.Email, default))
+            .ReturnsAsync(existingUser);
+
+        // Act & Assert
+        var exception = Assert.ThrowsAsync<InvalidOperationException>(
+            () => _authenticationService.RegisterPatientAsync(request));
+        Assert.That(exception.Message, Is.EqualTo("Email already registered"));
+    }
+
+    [Test]
+    public void RegisterPatientAsync_PasswordNotLongEnough_ShouldThrowException()
+    {
+        // Arrange
+        var request = new RegisterPatientRequest
+        {
+            Email = "existing@example.com",
+            Username = "testuser",
             Password = "password123",
             ConfirmPassword = "password123"
         };
@@ -103,7 +130,7 @@ public class AuthenticationServiceTests
         // Act & Assert
         var exception = Assert.ThrowsAsync<InvalidOperationException>(
             () => _authenticationService.RegisterPatientAsync(request));
-        Assert.That(exception.Message, Is.EqualTo("Email already registered"));
+        Assert.That(exception.Message, Is.EqualTo("Password must be 12–16 characters long"));
     }
 
     [Test]

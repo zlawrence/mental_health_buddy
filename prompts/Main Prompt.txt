@@ -29,6 +29,9 @@ Guardrail: If the question or statement can be related in any way to self harm o
 - The patient will also be able to pay for their subscription of $5 per month through the stripe hosted payment portal (https://docs.stripe.com/payments/checkout)
 - The system should save the dates of subscription purchase and renewal dates. 
 - On the user profile screen, there must be a way for the patient to unsubscribe, which will contact stripe to cancel their subscription
+- When creating an account, the password complexity must be high (12-16 characters, 1 uppercase letter, 1 lowercase, 2 special characters)
+- When creating an account, the patient must first purchase a subscription. On the create account screen, once the patient has entered the username, phone number, email, password, confirm password, the system will confirm that the email and username are not already in use. It will then enable a "Create subscription" button, and the user can't proceed without having created a subscription through the stripe page. 
+Only after the patient has an account and a subscription will they be able to log in. If they have a valid account, but no subscription, when logging in through the login screen, they system will display a screen that wraps the Stripe "create subscription" page
 
 Other Chat functionality
 - There should be a method to bring up previous chats and continue them. 

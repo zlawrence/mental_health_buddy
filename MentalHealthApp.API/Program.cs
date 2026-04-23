@@ -10,6 +10,7 @@ using Microsoft.IdentityModel.Tokens;
 using MongoDB.Driver;
 using System.Text;
 using DotNetEnv;
+using Stripe;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -100,6 +101,11 @@ builder.Services.AddScoped(sp =>
     var database = sp.GetRequiredService<IMongoDatabase>();
     return database.GetCollection<AuditLog>("auditLogs");
 });
+builder.Services.AddScoped(sp =>
+{
+    var database = sp.GetRequiredService<IMongoDatabase>();
+    return database.GetCollection<MentalHealthApp.Domain.Entities.Subscription>("subscriptions");
+});
 
 // JWT Authentication
 var jwtSettings = builder.Configuration.GetSection("Jwt");
@@ -141,6 +147,7 @@ builder.Services.AddScoped<ITherapistAccessRepository, TherapistAccessRepository
 builder.Services.AddScoped<IMessageCountRepository, MessageCountRepository>();
 builder.Services.AddScoped<IEmergencyContactRepository, EmergencyContactRepository>();
 builder.Services.AddScoped<IAuditLogRepository, AuditLogRepository>();
+builder.Services.AddScoped<ISubscriptionRepository, SubscriptionRepository>();
 
 // Register infrastructure services
 builder.Services.AddScoped<IPasswordHashingService, PasswordHashingService>();
@@ -162,6 +169,29 @@ builder.Services.AddScoped<ILLMTherapyService>(sp =>
     var apiKey = Environment.GetEnvironmentVariable("ANTHROPIC_API_DEV_KEY") ?? throw new InvalidOperationException("Anthropic API Key not configured");
     var modelId = anthropicSettings["ModelId"] ?? throw new InvalidOperationException("Anthropic ModelId not configured");
     return new ClaudeService(apiKey, modelId);
+});
+
+// Register Stripe services
+builder.Services.AddScoped<IPaymentGateway>(sp =>
+{
+    var secretKey = Environment.GetEnvironmentVariable("STRIPE_SECRET_KEY") ?? throw new InvalidOperationException("Stripe secret key not configured");
+    var environmentTag = Environment.GetEnvironmentVariable("PAYMENT_ENVIRONMENT") ?? "dev";
+
+    return new StripeGateway(secretKey, environmentTag);
+});
+builder.Services.AddScoped<IStripeWebhookParser, StripeWebhookParser>();
+builder.Services.AddScoped<ISubscriptionService>(sp =>
+{
+    var stripeSettings = sp.GetRequiredService<IConfiguration>().GetSection("Stripe");
+    var successUrl = stripeSettings["SuccessUrl"] ?? "https://anxietybuddy.app/payment-success";
+    var cancelUrl = stripeSettings["CancelUrl"] ?? "https://anxietybuddy.app/payment-canceled";
+    return new MentalHealthApp.Infrastructure.Services.SubscriptionService(
+        sp.GetRequiredService<ISubscriptionRepository>(),
+        sp.GetRequiredService<IUserRepository>(),
+        sp.GetRequiredService<IPaymentGateway>(),
+        successUrl,
+        cancelUrl
+    );
 });
 
 // Register application services

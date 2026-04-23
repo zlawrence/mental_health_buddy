@@ -15,6 +15,20 @@ public class AuthController : ControllerBase
         _authService = authService;
     }
 
+    [HttpGet("check-availability")]
+    public async Task<IActionResult> CheckAvailability([FromQuery] string? username, [FromQuery] string? email)
+    {
+        try
+        {
+            var result = await _authService.CheckAvailabilityAsync(username, email);
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
+
     [HttpPost("register-patient")]
     public async Task<IActionResult> RegisterPatient([FromBody] RegisterPatientRequest request)
     {

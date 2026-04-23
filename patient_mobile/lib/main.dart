@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'screens/login_screen.dart';
+import 'screens/signup_screen.dart';
 import 'screens/dashboard_screen.dart';
 import 'screens/profile_screen.dart';
 import 'screens/conversation_detail_screen.dart';
+import 'screens/subscription_required_screen.dart';
 
 void main() {
   runApp(const PatientApp());
@@ -48,9 +50,11 @@ class PatientApp extends StatelessWidget {
       initialRoute: '/',
       routes: {
         '/': (context) => const LoginScreen(),
+        '/signup': (context) => const SignupScreen(),
         '/dashboard': (context) => const DashboardScreen(),
         '/profile': (context) => const ProfileScreen(),
         '/conversation': (context) => const ConversationDetailScreen(),
+        '/subscription-required': (context) => const SubscriptionRequiredScreen(),
       },
     );
   }
