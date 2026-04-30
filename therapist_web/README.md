@@ -1,15 +1,30 @@
-# Therapist Web App
+# Therapist Web Portal
 
-This Next.js app is the therapist-facing portal for the mental health backend.
+Next.js 14 portal for therapists to view assigned patients, manage guard rails, and review conversation history.
 
-## Setup
+See the [root README](../README.md) for full setup instructions covering all platform components.
 
-1. Install Node.js
-2. Run `npm install`
-3. Create a `.env.local` file with `NEXT_PUBLIC_API_BASE_URL=http://localhost:5000`
-4. Run `npm run dev`
+## Quick Start
 
-## Notes
+```bash
+npm install
+```
 
-- The login screen stores the JWT in `localStorage`.
-- Use the backend's therapist login endpoint at `/api/auth/login-therapist`.
+Create `.env.local`:
+```
+NEXT_PUBLIC_API_BASE_URL=http://localhost:5251
+```
+
+```bash
+npm run dev        # development server at http://localhost:3000
+npm run build      # production build
+npm run start      # serve production build
+npm test           # run tests
+npm run test:coverage  # run tests with coverage report (≥85% threshold)
+```
+
+## Stack
+
+- Next.js 14 (App Router)
+- Tailwind CSS v4
+- React Testing Library + Jest (SWC)
