@@ -11,17 +11,23 @@ public class PatientService : IPatientService
     private readonly IPatientProfileRepository _patientProfileRepository;
     private readonly IGuardRailRepository _guardRailRepository;
     private readonly ITherapistInvitationRepository _invitationRepository;
+    private readonly IEmailQueue _emailQueue;
+    private readonly string _appBaseUrl;
 
     public PatientService(
         IUserRepository userRepository,
         IPatientProfileRepository patientProfileRepository,
         IGuardRailRepository guardRailRepository,
-        ITherapistInvitationRepository invitationRepository)
+        ITherapistInvitationRepository invitationRepository,
+        IEmailQueue emailQueue,
+        string appBaseUrl)
     {
         _userRepository = userRepository;
         _patientProfileRepository = patientProfileRepository;
         _guardRailRepository = guardRailRepository;
         _invitationRepository = invitationRepository;
+        _emailQueue = emailQueue;
+        _appBaseUrl = appBaseUrl;
     }
 
     public async Task<PatientProfileResponse> GetPatientProfileAsync(string patientId)
@@ -199,12 +205,59 @@ public class PatientService : IPatientService
 
         await _invitationRepository.AddAsync(invitation);
 
+        var setupUrl = $"{_appBaseUrl}/therapist-setup?token={invitation.Token}";
+        await _emailQueue.EnqueueAsync(BuildInvitationEmail(
+            patient.Username,
+            invitation.TherapistEmail,
+            setupUrl,
+            invitation.ExpiresAt));
+
         return new TherapistInvitationResponse
         {
             Id = invitation.Id,
             TherapistEmail = invitation.TherapistEmail,
             ExpiresAt = invitation.ExpiresAt,
             IsUsed = invitation.IsUsed
+        };
+    }
+
+    private static EmailMessage BuildInvitationEmail(
+        string patientUsername,
+        string therapistEmail,
+        string setupUrl,
+        DateTime expiresAt)
+    {
+        return new EmailMessage
+        {
+            To = therapistEmail,
+            Subject = "You've been invited to join Anxiety Buddy",
+            HtmlBody = $"""
+                <h2>Therapist Invitation — Anxiety Buddy</h2>
+                <p>Your patient <strong>{patientUsername}</strong> has invited you to join Anxiety Buddy as their therapist.</p>
+                <p>Click the button below to set up your account. This invitation expires on <strong>{expiresAt:MMMM d, yyyy}</strong>.</p>
+                <p style="margin:24px 0;">
+                  <a href="{setupUrl}"
+                     style="background:#6f5acd;color:#fff;padding:12px 24px;border-radius:4px;text-decoration:none;font-weight:bold;">
+                    Accept Invitation
+                  </a>
+                </p>
+                <p style="color:#888;font-size:12px;">
+                  If the button doesn't work, copy this link into your browser:<br>
+                  <a href="{setupUrl}">{setupUrl}</a>
+                </p>
+                <hr>
+                <p style="color:#888;font-size:12px;">Anxiety Buddy — AI-assisted mental health support</p>
+                """,
+            TextBody = $"""
+                Therapist Invitation — Anxiety Buddy
+
+                Your patient {patientUsername} has invited you to join Anxiety Buddy as their therapist.
+
+                Set up your account here (expires {expiresAt:MMMM d, yyyy}):
+                {setupUrl}
+
+                Anxiety Buddy — AI-assisted mental health support
+                """
         };
     }
 }

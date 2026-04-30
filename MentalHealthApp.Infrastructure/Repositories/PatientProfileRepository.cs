@@ -1,12 +1,13 @@
-using MongoDB.Driver;
+using MentalHealthApp.Application.Services;
 using MentalHealthApp.Domain.Entities;
 using MentalHealthApp.Domain.Repositories;
+using MongoDB.Driver;
 
 namespace MentalHealthApp.Infrastructure.Repositories;
 
 public class PatientProfileRepository : MongoRepository<PatientProfile>, IPatientProfileRepository
 {
-    public PatientProfileRepository(IMongoCollection<PatientProfile> collection) : base(collection)
+    public PatientProfileRepository(IMongoCollection<PatientProfile> collection, IResilienceAuditLogger auditLogger) : base(collection, auditLogger)
     {
     }
 

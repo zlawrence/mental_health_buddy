@@ -1,3 +1,4 @@
+using MentalHealthApp.Application.Services;
 using MentalHealthApp.Domain.Entities;
 using MentalHealthApp.Infrastructure.Repositories;
 using MongoDB.Driver;
@@ -16,7 +17,7 @@ public class GuardRailRepositoryTests
     public void Setup()
     {
         _collectionMock = new Mock<IMongoCollection<GuardRail>>();
-        _guardRailRepository = new GuardRailRepository(_collectionMock.Object);
+        _guardRailRepository = new GuardRailRepository(_collectionMock.Object, new Mock<IResilienceAuditLogger>().Object);
     }
 
     [Test]

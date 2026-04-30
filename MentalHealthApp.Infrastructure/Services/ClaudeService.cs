@@ -1,9 +1,10 @@
 using Anthropic;
-using Anthropic.Models.Messages;
 using MentalHealthApp.Application.Services;
 using MentalHealthApp.Fx;
+using MentalHealthApp.Infrastructure.Resilience;
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.ChatCompletion;
+using Polly;
 
 namespace MentalHealthApp.Infrastructure.Services;
 
@@ -11,12 +12,14 @@ public class ClaudeService : ILLMTherapyService
 {
     private readonly string _apiKey;
     private readonly string _modelId;
+    private readonly ResiliencePipeline _pipeline;
     private const int MaxTokens = 500;
 
-    public ClaudeService(string apiKey, string modelId)
+    public ClaudeService(string apiKey, string modelId, ApiResiliencePipelineProvider pipelineProvider)
     {
         _apiKey = apiKey;
         _modelId = modelId;
+        _pipeline = pipelineProvider.GetPipeline("Anthropic");
     }
 
     public async Task<ChatResponse> GetTherapyResponseAsync(
@@ -33,13 +36,9 @@ public class ClaudeService : ILLMTherapyService
         foreach (var message in conversationHistory)
         {
             if (message.role == "user")
-            {
                 chatHistory.AddUserMessage(message.content);
-            }
             else
-            {
                 chatHistory.AddAssistantMessage(message.content);
-            }
         }
 
         chatHistory.AddUserMessage(request.Message);
@@ -56,7 +55,10 @@ public class ClaudeService : ILLMTherapyService
 
         try
         {
-            responseContent = await service.GetChatMessageContentAsync(chatHistory, promptSettings, kernel, cancellationToken);
+            responseContent = await _pipeline.ExecuteAsync(
+                ct => new ValueTask<ChatMessageContent>(
+                    service.GetChatMessageContentAsync(chatHistory, promptSettings, kernel, ct)),
+                cancellationToken);
         }
         catch (Exception ex)
         {

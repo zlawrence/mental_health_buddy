@@ -258,4 +258,69 @@ public class AuthenticationService : IAuthenticationService
             Token = token
         };
     }
+
+    public async Task<ValidateInvitationResponse> ValidateInvitationAsync(string token, CancellationToken cancellationToken = default)
+    {
+        var invitation = await _invitationRepository.GetByTokenAsync(token, cancellationToken);
+
+        if (invitation == null)
+            return new ValidateInvitationResponse { Valid = false };
+
+        if (invitation.IsUsed)
+            return new ValidateInvitationResponse { Valid = false, AlreadyUsed = true, TherapistEmail = invitation.TherapistEmail };
+
+        if (invitation.ExpiresAt < DateTime.UtcNow)
+            return new ValidateInvitationResponse { Valid = false, Expired = true, TherapistEmail = invitation.TherapistEmail };
+
+        var existingUser = await _userRepository.GetByEmailAsync(invitation.TherapistEmail, cancellationToken);
+
+        return new ValidateInvitationResponse
+        {
+            Valid = true,
+            TherapistEmail = invitation.TherapistEmail,
+            EmailAlreadyRegistered = existingUser != null
+        };
+    }
+
+    public async Task ClaimInvitationAsync(string token, string therapistUserId, CancellationToken cancellationToken = default)
+    {
+        var invitation = await _invitationRepository.GetByTokenAsync(token, cancellationToken);
+
+        if (invitation == null || invitation.IsUsed || invitation.ExpiresAt < DateTime.UtcNow)
+            throw new InvalidOperationException("Invalid or expired invitation token");
+
+        var therapist = await _userRepository.GetByIdAsync(therapistUserId, cancellationToken);
+        if (therapist == null || therapist.Role != UserRole.Therapist)
+            throw new InvalidOperationException("Therapist account not found");
+
+        if (therapist.Email != invitation.TherapistEmail)
+            throw new InvalidOperationException("This invitation was sent to a different email address");
+
+        var existingAccess = await _therapistAccessRepository.GetByTherapistAndPatientAsync(therapistUserId, invitation.PatientUserId, cancellationToken);
+        if (existingAccess == null)
+        {
+            await _therapistAccessRepository.AddAsync(new TherapistAccess
+            {
+                TherapistUserId = therapistUserId,
+                PatientUserId = invitation.PatientUserId,
+                CanViewChats = true,
+                CanManageGuardRails = true,
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            }, cancellationToken);
+        }
+
+        var profile = await _patientProfileRepository.GetByUserIdAsync(invitation.PatientUserId, cancellationToken);
+        if (profile != null && !profile.TherapistUserIds.Contains(therapistUserId))
+        {
+            profile.TherapistUserIds.Add(therapistUserId);
+            profile.UpdatedAt = DateTime.UtcNow;
+            await _patientProfileRepository.UpdateAsync(profile, cancellationToken);
+        }
+
+        invitation.IsUsed = true;
+        invitation.UsedBy = therapistUserId;
+        await _invitationRepository.UpdateAsync(invitation, cancellationToken);
+    }
 }

@@ -1,12 +1,13 @@
-using MongoDB.Driver;
+using MentalHealthApp.Application.Services;
 using MentalHealthApp.Domain.Entities;
 using MentalHealthApp.Domain.Repositories;
+using MongoDB.Driver;
 
 namespace MentalHealthApp.Infrastructure.Repositories;
 
 public class ConversationMessageRepository : MongoRepository<ConversationMessage>, IConversationMessageRepository
 {
-    public ConversationMessageRepository(IMongoCollection<ConversationMessage> collection) : base(collection)
+    public ConversationMessageRepository(IMongoCollection<ConversationMessage> collection, IResilienceAuditLogger auditLogger) : base(collection, auditLogger)
     {
     }
 

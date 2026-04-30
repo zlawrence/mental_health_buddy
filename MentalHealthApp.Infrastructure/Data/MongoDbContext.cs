@@ -47,6 +47,9 @@ public class MongoDbContext
     public IMongoCollection<Domain.Entities.TherapistInvitation> TherapistInvitations =>
         GetCollection<Domain.Entities.TherapistInvitation>("therapist_invitations");
 
+    public IMongoCollection<Domain.Entities.MessageLog> MessageLogs =>
+        GetCollection<Domain.Entities.MessageLog>("message_logs");
+
     public async Task InitializeIndexesAsync()
     {
         // User indexes
@@ -94,5 +97,13 @@ public class MongoDbContext
                 Builders<Domain.Entities.MessageCount>.IndexKeys
                     .Ascending(m => m.PatientUserId)
                     .Ascending(m => m.Date)));
+
+        // MessageLog indexes
+        var messageLogsCollection = MessageLogs;
+        await messageLogsCollection.Indexes.CreateOneAsync(
+            new CreateIndexModel<Domain.Entities.MessageLog>(
+                Builders<Domain.Entities.MessageLog>.IndexKeys
+                    .Ascending(m => m.Status)
+                    .Descending(m => m.CreatedAt)));
     }
 }

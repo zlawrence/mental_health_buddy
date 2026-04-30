@@ -100,6 +100,20 @@ public class TherapistInvitationResponse
     public bool IsUsed { get; set; }
 }
 
+// Therapist-specific Guard Rail DTOs
+public class TherapistCreateGuardRailRequest
+{
+    public string Keyword { get; set; } = string.Empty;
+    public string Action { get; set; } = string.Empty; // "remove" or "replace"
+    public string? Replacement { get; set; }
+}
+
+public class TherapistAccessResponse
+{
+    public bool CanViewChats { get; set; }
+    public bool CanManageGuardRails { get; set; }
+}
+
 // Emergency Contact DTOs
 public class AddEmergencyContactRequest
 {

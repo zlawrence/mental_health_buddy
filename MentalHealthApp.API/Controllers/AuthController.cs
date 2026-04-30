@@ -1,5 +1,7 @@
+using System.Security.Claims;
 using MentalHealthApp.Application.DTOs;
 using MentalHealthApp.Application.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace MentalHealthApp.API.Controllers;
@@ -92,6 +94,35 @@ public class AuthController : ControllerBase
         {
             var result = await _authService.LoginAdminAsync(request);
             return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
+
+    [HttpGet("validate-invitation")]
+    public async Task<IActionResult> ValidateInvitation([FromQuery] string token)
+    {
+        if (string.IsNullOrWhiteSpace(token))
+            return BadRequest(new { message = "Token is required" });
+
+        var result = await _authService.ValidateInvitationAsync(token);
+        return Ok(result);
+    }
+
+    [Authorize(Roles = "Therapist")]
+    [HttpPost("claim-invitation")]
+    public async Task<IActionResult> ClaimInvitation([FromBody] ClaimInvitationRequest request)
+    {
+        try
+        {
+            var therapistUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrWhiteSpace(therapistUserId))
+                return Unauthorized(new { message = "Invalid token" });
+
+            await _authService.ClaimInvitationAsync(request.Token, therapistUserId);
+            return Ok(new { message = "Invitation claimed successfully" });
         }
         catch (Exception ex)
         {

@@ -21,10 +21,7 @@ public class TherapistController : ControllerBase
     [HttpGet("me/patients")]
     public async Task<IActionResult> GetAssignedPatients()
     {
-        if (!IsCurrentUserTherapist())
-        {
-            return Forbid();
-        }
+        if (!IsCurrentUserTherapist()) return Forbid();
 
         var therapistId = GetCurrentUserId();
         var patients = await _therapistService.GetAssignedPatientsAsync(therapistId);
@@ -34,10 +31,7 @@ public class TherapistController : ControllerBase
     [HttpGet("me/patients/{patientId}")]
     public async Task<IActionResult> GetPatientProfile(string patientId)
     {
-        if (!IsCurrentUserTherapist())
-        {
-            return Forbid();
-        }
+        if (!IsCurrentUserTherapist()) return Forbid();
 
         var therapistId = GetCurrentUserId();
         try
@@ -45,23 +39,29 @@ public class TherapistController : ControllerBase
             var profile = await _therapistService.GetPatientProfileAsync(therapistId, patientId);
             return Ok(profile);
         }
-        catch (UnauthorizedAccessException)
+        catch (UnauthorizedAccessException) { return Forbid(); }
+        catch (Exception ex) { return BadRequest(new { message = ex.Message }); }
+    }
+
+    [HttpGet("me/patients/{patientId}/access")]
+    public async Task<IActionResult> GetPatientAccess(string patientId)
+    {
+        if (!IsCurrentUserTherapist()) return Forbid();
+
+        var therapistId = GetCurrentUserId();
+        try
         {
-            return Forbid();
+            var access = await _therapistService.GetTherapistAccessAsync(therapistId, patientId);
+            return Ok(access);
         }
-        catch (Exception ex)
-        {
-            return BadRequest(new { message = ex.Message });
-        }
+        catch (UnauthorizedAccessException) { return Forbid(); }
+        catch (Exception ex) { return BadRequest(new { message = ex.Message }); }
     }
 
     [HttpGet("me/patients/{patientId}/guard-rails")]
     public async Task<IActionResult> GetPatientGuardRails(string patientId)
     {
-        if (!IsCurrentUserTherapist())
-        {
-            return Forbid();
-        }
+        if (!IsCurrentUserTherapist()) return Forbid();
 
         var therapistId = GetCurrentUserId();
         try
@@ -69,23 +69,30 @@ public class TherapistController : ControllerBase
             var guardRails = await _therapistService.GetPatientGuardRailsAsync(therapistId, patientId);
             return Ok(guardRails);
         }
-        catch (UnauthorizedAccessException)
+        catch (UnauthorizedAccessException) { return Forbid(); }
+        catch (Exception ex) { return BadRequest(new { message = ex.Message }); }
+    }
+
+    [HttpPost("me/patients/{patientId}/guard-rails")]
+    public async Task<IActionResult> CreateGuardRail(string patientId, [FromBody] TherapistCreateGuardRailRequest request)
+    {
+        if (!IsCurrentUserTherapist()) return Forbid();
+
+        var therapistId = GetCurrentUserId();
+        try
         {
-            return Forbid();
+            var guardRail = await _therapistService.CreateGuardRailAsync(therapistId, patientId, request);
+            return CreatedAtAction(nameof(GetPatientGuardRails), new { patientId }, guardRail);
         }
-        catch (Exception ex)
-        {
-            return BadRequest(new { message = ex.Message });
-        }
+        catch (UnauthorizedAccessException) { return Forbid(); }
+        catch (InvalidOperationException ex) { return BadRequest(new { message = ex.Message }); }
+        catch (Exception ex) { return BadRequest(new { message = ex.Message }); }
     }
 
     [HttpPut("me/patients/{patientId}/guard-rails/{guardRailId}")]
     public async Task<IActionResult> UpdateGuardRail(string patientId, string guardRailId, [FromBody] UpdateGuardRailRequest request)
     {
-        if (!IsCurrentUserTherapist())
-        {
-            return Forbid();
-        }
+        if (!IsCurrentUserTherapist()) return Forbid();
 
         var therapistId = GetCurrentUserId();
         try
@@ -93,27 +100,15 @@ public class TherapistController : ControllerBase
             await _therapistService.UpdateGuardRailAsync(therapistId, patientId, guardRailId, request);
             return NoContent();
         }
-        catch (UnauthorizedAccessException)
-        {
-            return Forbid();
-        }
-        catch (InvalidOperationException ex)
-        {
-            return BadRequest(new { message = ex.Message });
-        }
-        catch (Exception ex)
-        {
-            return BadRequest(new { message = ex.Message });
-        }
+        catch (UnauthorizedAccessException) { return Forbid(); }
+        catch (InvalidOperationException ex) { return BadRequest(new { message = ex.Message }); }
+        catch (Exception ex) { return BadRequest(new { message = ex.Message }); }
     }
 
     [HttpDelete("me/patients/{patientId}/guard-rails/{guardRailId}")]
     public async Task<IActionResult> DeleteGuardRail(string patientId, string guardRailId)
     {
-        if (!IsCurrentUserTherapist())
-        {
-            return Forbid();
-        }
+        if (!IsCurrentUserTherapist()) return Forbid();
 
         var therapistId = GetCurrentUserId();
         try
@@ -121,27 +116,15 @@ public class TherapistController : ControllerBase
             await _therapistService.DeleteGuardRailAsync(therapistId, patientId, guardRailId);
             return NoContent();
         }
-        catch (UnauthorizedAccessException)
-        {
-            return Forbid();
-        }
-        catch (InvalidOperationException ex)
-        {
-            return NotFound(new { message = ex.Message });
-        }
-        catch (Exception ex)
-        {
-            return BadRequest(new { message = ex.Message });
-        }
+        catch (UnauthorizedAccessException) { return Forbid(); }
+        catch (InvalidOperationException ex) { return NotFound(new { message = ex.Message }); }
+        catch (Exception ex) { return BadRequest(new { message = ex.Message }); }
     }
 
     [HttpGet("me/patients/{patientId}/conversations")]
     public async Task<IActionResult> GetPatientConversations(string patientId)
     {
-        if (!IsCurrentUserTherapist())
-        {
-            return Forbid();
-        }
+        if (!IsCurrentUserTherapist()) return Forbid();
 
         var therapistId = GetCurrentUserId();
         try
@@ -149,23 +132,29 @@ public class TherapistController : ControllerBase
             var conversations = await _therapistService.GetPatientConversationsAsync(therapistId, patientId);
             return Ok(conversations);
         }
-        catch (UnauthorizedAccessException)
-        {
-            return Forbid();
-        }
-        catch (Exception ex)
-        {
-            return BadRequest(new { message = ex.Message });
-        }
+        catch (UnauthorizedAccessException) { return Forbid(); }
+        catch (Exception ex) { return BadRequest(new { message = ex.Message }); }
     }
 
-    private string GetCurrentUserId()
+    [HttpGet("me/patients/{patientId}/conversations/{conversationId}/messages")]
+    public async Task<IActionResult> GetPatientConversationMessages(string patientId, string conversationId)
     {
-        return User.FindFirstValue(ClaimTypes.NameIdentifier) ?? string.Empty;
+        if (!IsCurrentUserTherapist()) return Forbid();
+
+        var therapistId = GetCurrentUserId();
+        try
+        {
+            var messages = await _therapistService.GetPatientConversationMessagesAsync(therapistId, patientId, conversationId);
+            return Ok(messages);
+        }
+        catch (UnauthorizedAccessException) { return Forbid(); }
+        catch (InvalidOperationException ex) { return NotFound(new { message = ex.Message }); }
+        catch (Exception ex) { return BadRequest(new { message = ex.Message }); }
     }
 
-    private bool IsCurrentUserTherapist()
-    {
-        return User.FindFirstValue(ClaimTypes.Role)?.Equals("Therapist", StringComparison.OrdinalIgnoreCase) == true;
-    }
+    private string GetCurrentUserId() =>
+        User.FindFirstValue(ClaimTypes.NameIdentifier) ?? string.Empty;
+
+    private bool IsCurrentUserTherapist() =>
+        User.FindFirstValue(ClaimTypes.Role)?.Equals("Therapist", StringComparison.OrdinalIgnoreCase) == true;
 }

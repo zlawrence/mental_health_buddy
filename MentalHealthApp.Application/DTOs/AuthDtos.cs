@@ -56,3 +56,17 @@ public class AdminLoginRequest
     public string Username { get; set; } = string.Empty;
     public string Password { get; set; } = string.Empty;
 }
+
+public class ValidateInvitationResponse
+{
+    public bool Valid { get; set; }
+    public bool Expired { get; set; }
+    public bool AlreadyUsed { get; set; }
+    public string? TherapistEmail { get; set; }
+    public bool EmailAlreadyRegistered { get; set; }
+}
+
+public class ClaimInvitationRequest
+{
+    public string Token { get; set; } = string.Empty;
+}

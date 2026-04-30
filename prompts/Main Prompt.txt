@@ -38,6 +38,14 @@ Other Chat functionality
 - There should be a way to search previous chats for parts of conversations. Such as "Do you remember when we talked about my old pet?", and the system should list the conversations that - talked about the pet, displaying the first part of the conversation pertaining to the pet. 
 
 
+email
+- The system will need to have the ability to send transactional emails, such as the emails being sent out to invite a therapist to join the system. 
+- The system will need to use Postmark email service via api to send an email. 
+- The system will send the "To" email address and invitation like to Postmark email service. 
+- The system will need to use a queue to ensure that no emails or messages are lost
+- 
+All email messages should be also stored in the database using the repository pattern, with a status indicating if the message is in the queue, sent, or failed. If there was a failure, the failure message should be in the database as well
+
 Settings
 My Therapists
 - This area allows a patient to manage their therapist and their access. 
@@ -62,6 +70,8 @@ Therapist center Application  - Web site but mobile first responsive.
 - The therapist will have the ability to add or remove guard rails. 
 - Guard rails are entered as free text. 
 - There will be an area that the therapist can change their password. 
+- The therapist setup link should bring the invited therapist to a page on the therapist web site that indicates that they've been invited to use the site. 
+- The therapist will need to set up a login and password that isn't currently in use. If the username or email is already in use, they should be prompted to login to access the patient's profile. 
 
 Admin Portal Application - 
 Login will only allow users of "Admin" role
@@ -106,8 +116,12 @@ Technology stack
 - It will use third party oauth2 compliant service, like Auth0 or Cognito for authentication. 
 - The API will use middleware to authenticate the request, confirming token validation against the third party oauth provider
 - The system will use opentelemetry for observability and instrumentation
+- For the therapist portal, we need to have at least 85% unit test coverage. Put in unit tests using jest
 
 General
 - Unit tests should be written for each layer. NUnit for .NET core and Jest.js for any web applications
 - Integration tests should be written for all connections between the web application and the APIs, as well as between the mobile application and the APIs.  
-
+- All connections to the database or third party APIs must use a retry policy that makes three attempts before logging an error to the audit log. 
+- All connections to hird party APIs must use a circuit breaker pattern
+- The therapist setup link should bring the invited therapist to a page on the therapist web site that indicates that they've been invited 
+- The therapist wegb application needs to be usable in both desktop and mobile. Use tailwind css for all styles on the web application

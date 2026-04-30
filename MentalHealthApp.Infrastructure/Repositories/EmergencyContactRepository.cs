@@ -1,12 +1,13 @@
-using MongoDB.Driver;
+using MentalHealthApp.Application.Services;
 using MentalHealthApp.Domain.Entities;
 using MentalHealthApp.Domain.Repositories;
+using MongoDB.Driver;
 
 namespace MentalHealthApp.Infrastructure.Repositories;
 
 public class EmergencyContactRepository : MongoRepository<EmergencyContact>, IEmergencyContactRepository
 {
-    public EmergencyContactRepository(IMongoCollection<EmergencyContact> collection) : base(collection)
+    public EmergencyContactRepository(IMongoCollection<EmergencyContact> collection, IResilienceAuditLogger auditLogger) : base(collection, auditLogger)
     {
     }
 

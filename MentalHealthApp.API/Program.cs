@@ -1,11 +1,14 @@
 using System.Runtime.CompilerServices;
+using System.Threading.RateLimiting;
 using MentalHealthApp.Application.Services;
 using MentalHealthApp.Domain.Entities;
 using MentalHealthApp.Domain.Repositories;
 using MentalHealthApp.Infrastructure.Repositories;
+using MentalHealthApp.Infrastructure.Resilience;
 using MentalHealthApp.Infrastructure.Services;
 using MentalHealthApp.Application.Mappings;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.IdentityModel.Tokens;
 using MongoDB.Driver;
 using System.Text;
@@ -106,6 +109,11 @@ builder.Services.AddScoped(sp =>
     var database = sp.GetRequiredService<IMongoDatabase>();
     return database.GetCollection<MentalHealthApp.Domain.Entities.Subscription>("subscriptions");
 });
+builder.Services.AddScoped(sp =>
+{
+    var database = sp.GetRequiredService<IMongoDatabase>();
+    return database.GetCollection<MentalHealthApp.Domain.Entities.MessageLog>("messageLogs");
+});
 
 // JWT Authentication
 var jwtSettings = builder.Configuration.GetSection("Jwt");
@@ -148,6 +156,11 @@ builder.Services.AddScoped<IMessageCountRepository, MessageCountRepository>();
 builder.Services.AddScoped<IEmergencyContactRepository, EmergencyContactRepository>();
 builder.Services.AddScoped<IAuditLogRepository, AuditLogRepository>();
 builder.Services.AddScoped<ISubscriptionRepository, SubscriptionRepository>();
+builder.Services.AddScoped<IMessageLogRepository, MessageLogRepository>();
+
+// Resilience: singleton audit logger + singleton pipeline provider (circuit breaker state must survive across requests)
+builder.Services.AddSingleton<IResilienceAuditLogger, ResilienceAuditLogger>();
+builder.Services.AddSingleton<ApiResiliencePipelineProvider>();
 
 // Register infrastructure services
 builder.Services.AddScoped<IPasswordHashingService, PasswordHashingService>();
@@ -168,7 +181,7 @@ builder.Services.AddScoped<ILLMTherapyService>(sp =>
     var anthropicSettings = sp.GetRequiredService<IConfiguration>().GetSection("Anthropic");
     var apiKey = Environment.GetEnvironmentVariable("ANTHROPIC_API_DEV_KEY") ?? throw new InvalidOperationException("Anthropic API Key not configured");
     var modelId = anthropicSettings["ModelId"] ?? throw new InvalidOperationException("Anthropic ModelId not configured");
-    return new ClaudeService(apiKey, modelId);
+    return new ClaudeService(apiKey, modelId, sp.GetRequiredService<ApiResiliencePipelineProvider>());
 });
 
 // Register Stripe services
@@ -177,7 +190,7 @@ builder.Services.AddScoped<IPaymentGateway>(sp =>
     var secretKey = Environment.GetEnvironmentVariable("STRIPE_SECRET_KEY") ?? throw new InvalidOperationException("Stripe secret key not configured");
     var environmentTag = Environment.GetEnvironmentVariable("PAYMENT_ENVIRONMENT") ?? "dev";
 
-    return new StripeGateway(secretKey, environmentTag);
+    return new StripeGateway(secretKey, environmentTag, sp.GetRequiredService<ApiResiliencePipelineProvider>());
 });
 builder.Services.AddScoped<IStripeWebhookParser, StripeWebhookParser>();
 builder.Services.AddScoped<ISubscriptionService>(sp =>
@@ -194,22 +207,73 @@ builder.Services.AddScoped<ISubscriptionService>(sp =>
     );
 });
 
+// Email queue: singleton channel for the background processor; scoped decorator persists to DB on enqueue
+builder.Services.AddSingleton<EmailQueueChannel>();
+builder.Services.AddScoped<IEmailQueue, PersistingEmailQueue>();
+
+// Postmark email service
+builder.Services.AddSingleton<IThirdPartyEmailService>(sp =>
+{
+    var apiKey = Environment.GetEnvironmentVariable("POSTMARK_API_KEY")
+        ?? throw new InvalidOperationException("Postmark API key not configured");
+    var postmarkSettings = sp.GetRequiredService<IConfiguration>().GetSection("Postmark");
+    var fromEmail = postmarkSettings["FromEmail"] ?? "noreply@anxietybuddy.app";
+    return new PostmarkEmailService(
+        apiKey,
+        fromEmail,
+        sp.GetRequiredService<ILogger<PostmarkEmailService>>(),
+        sp.GetRequiredService<ApiResiliencePipelineProvider>());
+});
+builder.Services.AddHostedService<EmailQueueProcessor>();
+
 // Register application services
 builder.Services.AddScoped<IAuthenticationService, AuthenticationService>();
 builder.Services.AddScoped<IConversationService, ConversationService>();
 builder.Services.AddScoped<IGuardRailService, GuardRailService>();
-builder.Services.AddScoped<IPatientService, PatientService>();
+builder.Services.AddScoped<IPatientService>(sp =>
+{
+    var appSettings = sp.GetRequiredService<IConfiguration>().GetSection("App");
+    var appBaseUrl = appSettings["BaseUrl"] ?? "https://anxietybuddy.app";
+    return new PatientService(
+        sp.GetRequiredService<IUserRepository>(),
+        sp.GetRequiredService<IPatientProfileRepository>(),
+        sp.GetRequiredService<IGuardRailRepository>(),
+        sp.GetRequiredService<ITherapistInvitationRepository>(),
+        sp.GetRequiredService<IEmailQueue>(),
+        appBaseUrl);
+});
 builder.Services.AddScoped<ITherapistService, TherapistService>();
 builder.Services.AddScoped<IAdminService, AdminService>();
+
+// IP-based rate limiting — limits apply per remote IP across all controllers
+var rateLimitMaxRequests = int.TryParse(Environment.GetEnvironmentVariable("RATE_LIMIT_MAX_REQUESTS"), out var rl) && rl > 0 ? rl : 100;
+var rateLimitWindowSeconds = int.TryParse(Environment.GetEnvironmentVariable("RATE_LIMIT_WINDOW_SECONDS"), out var rw) && rw > 0 ? rw : 60;
+
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(httpContext =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            factory: _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = rateLimitMaxRequests,
+                Window = TimeSpan.FromSeconds(rateLimitWindowSeconds),
+                QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+                QueueLimit = 0
+            }));
+});
 
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
+if (!builder.Environment.IsDevelopment())
 {
+    app.UseHttpsRedirection();
 }
 
-app.UseHttpsRedirection();
+
+app.UseRateLimiter();
 
 // Enable CORS policy
 app.UseCors("AllowLocalhost53739");

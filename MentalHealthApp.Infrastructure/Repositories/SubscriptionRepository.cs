@@ -1,12 +1,13 @@
-using MongoDB.Driver;
+using MentalHealthApp.Application.Services;
 using MentalHealthApp.Domain.Entities;
 using MentalHealthApp.Domain.Repositories;
+using MongoDB.Driver;
 
 namespace MentalHealthApp.Infrastructure.Repositories;
 
 public class SubscriptionRepository : MongoRepository<Subscription>, ISubscriptionRepository
 {
-    public SubscriptionRepository(IMongoCollection<Subscription> collection) : base(collection)
+    public SubscriptionRepository(IMongoCollection<Subscription> collection, IResilienceAuditLogger auditLogger) : base(collection, auditLogger)
     {
     }
 

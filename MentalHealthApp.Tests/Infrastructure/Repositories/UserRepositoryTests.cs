@@ -1,3 +1,4 @@
+using MentalHealthApp.Application.Services;
 using MentalHealthApp.Domain.Entities;
 using MentalHealthApp.Infrastructure.Repositories;
 using MongoDB.Driver;
@@ -16,7 +17,7 @@ public class UserRepositoryTests
     public void Setup()
     {
         _collectionMock = new Mock<IMongoCollection<User>>();
-        _userRepository = new UserRepository(_collectionMock.Object);
+        _userRepository = new UserRepository(_collectionMock.Object, new Mock<IResilienceAuditLogger>().Object);
     }
 
     [Test]

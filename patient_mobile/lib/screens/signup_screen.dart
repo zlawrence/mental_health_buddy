@@ -21,6 +21,8 @@ class _SignupScreenState extends State<SignupScreen> {
   bool _availabilityConfirmed = false;
   bool _registering = false;
   bool _subscriptionOpened = false;
+  bool _showPassword = false;
+  bool _showConfirmPassword = false;
 
   String? _usernameError;
   String? _emailError;
@@ -62,9 +64,7 @@ class _SignupScreenState extends State<SignupScreen> {
   }
 
   void _onFieldChanged() {
-    if (_availabilityConfirmed) {
-      setState(() => _availabilityConfirmed = false);
-    }
+    setState(() => _availabilityConfirmed = false);
   }
 
   Future<void> _checkAvailability() async {
@@ -175,10 +175,18 @@ class _SignupScreenState extends State<SignupScreen> {
             const SizedBox(height: 16),
             _buildPasswordField(),
             const SizedBox(height: 16),
-            _buildTextField(
+            TextField(
               controller: _confirmPasswordController,
-              label: 'Confirm password',
-              obscureText: true,
+              decoration: InputDecoration(
+                labelText: 'Confirm password',
+                labelStyle: const TextStyle(fontWeight: FontWeight.bold),
+                suffixIcon: IconButton(
+                  icon: Icon(_showConfirmPassword ? Icons.visibility_off : Icons.visibility),
+                  onPressed: () => setState(() => _showConfirmPassword = !_showConfirmPassword),
+                ),
+              ),
+              obscureText: !_showConfirmPassword,
+              textInputAction: TextInputAction.next,
               onChanged: (_) => _onFieldChanged(),
             ),
             const SizedBox(height: 8),
@@ -303,8 +311,12 @@ class _SignupScreenState extends State<SignupScreen> {
         labelText: 'Password',
         labelStyle: const TextStyle(fontWeight: FontWeight.bold),
         errorText: _passwordError,
+        suffixIcon: IconButton(
+          icon: Icon(_showPassword ? Icons.visibility_off : Icons.visibility),
+          onPressed: () => setState(() => _showPassword = !_showPassword),
+        ),
       ),
-      obscureText: true,
+      obscureText: !_showPassword,
       textInputAction: TextInputAction.next,
       onChanged: (_) {
         _onFieldChanged();

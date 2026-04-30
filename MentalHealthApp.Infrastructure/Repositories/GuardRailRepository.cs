@@ -1,12 +1,13 @@
-using MongoDB.Driver;
+using MentalHealthApp.Application.Services;
 using MentalHealthApp.Domain.Entities;
 using MentalHealthApp.Domain.Repositories;
+using MongoDB.Driver;
 
 namespace MentalHealthApp.Infrastructure.Repositories;
 
 public class GuardRailRepository : MongoRepository<GuardRail>, IGuardRailRepository
 {
-    public GuardRailRepository(IMongoCollection<GuardRail> collection) : base(collection)
+    public GuardRailRepository(IMongoCollection<GuardRail> collection, IResilienceAuditLogger auditLogger) : base(collection, auditLogger)
     {
     }
 

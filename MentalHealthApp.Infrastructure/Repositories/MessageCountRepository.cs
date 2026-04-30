@@ -1,12 +1,13 @@
-using MongoDB.Driver;
+using MentalHealthApp.Application.Services;
 using MentalHealthApp.Domain.Entities;
 using MentalHealthApp.Domain.Repositories;
+using MongoDB.Driver;
 
 namespace MentalHealthApp.Infrastructure.Repositories;
 
 public class MessageCountRepository : MongoRepository<MessageCount>, IMessageCountRepository
 {
-    public MessageCountRepository(IMongoCollection<MessageCount> collection) : base(collection)
+    public MessageCountRepository(IMongoCollection<MessageCount> collection, IResilienceAuditLogger auditLogger) : base(collection, auditLogger)
     {
     }
 

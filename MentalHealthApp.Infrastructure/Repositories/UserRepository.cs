@@ -1,12 +1,13 @@
-using MongoDB.Driver;
+using MentalHealthApp.Application.Services;
 using MentalHealthApp.Domain.Entities;
 using MentalHealthApp.Domain.Repositories;
+using MongoDB.Driver;
 
 namespace MentalHealthApp.Infrastructure.Repositories;
 
 public class UserRepository : MongoRepository<User>, IUserRepository
 {
-    public UserRepository(IMongoCollection<User> collection) : base(collection)
+    public UserRepository(IMongoCollection<User> collection, IResilienceAuditLogger auditLogger) : base(collection, auditLogger)
     {
     }
 

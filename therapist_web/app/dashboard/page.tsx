@@ -30,33 +30,41 @@ export default function DashboardPage() {
   };
 
   return (
-    <main style={{ padding: 24, fontFamily: 'Arial, sans-serif' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <div>
-          <h1>Assigned Patients</h1>
-          <p>Choose a patient to view details and manage guard rails.</p>
+    <main className="min-h-screen bg-gray-50 p-4 sm:p-6">
+      <div className="max-w-2xl mx-auto">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">Assigned Patients</h1>
+            <p className="text-gray-600 text-sm mt-1">Choose a patient to view details and manage guard rails.</p>
+          </div>
+          <button
+            onClick={handleLogout}
+            className="self-start sm:self-auto px-4 py-2 bg-indigo-500 text-white text-sm font-medium rounded-lg hover:bg-indigo-600 transition-colors cursor-pointer border-none"
+          >
+            Logout
+          </button>
         </div>
-        <button onClick={handleLogout} style={{ padding: '10px 18px', background: '#ef4444', color: '#fff', border: 'none', borderRadius: 8, cursor: 'pointer' }}>
-          Logout
-        </button>
-      </div>
 
-      {loading && <p>Loading patients...</p>}
-      {error && <p style={{ color: 'red' }}>{error}</p>}
-      {!loading && !error && (
-        <ul style={{ listStyle: 'none', padding: 0 }}>
-          {patients.map((patient) => (
-            <li key={patient.userId} style={{ marginBottom: 16, padding: 16, border: '1px solid #ddd', borderRadius: 8 }}>
-              <Link href={`/patients/${patient.userId}`} style={{ textDecoration: 'none', color: 'inherit' }}>
-                <strong>{patient.username}</strong>
-                <p>{patient.email}</p>
-                <p>Phone: {patient.phoneNumber ?? 'N/A'}</p>
-                <p style={{ color: '#2563eb' }}>View patient details →</p>
-              </Link>
-            </li>
-          ))}
-        </ul>
-      )}
+        {loading && <p className="text-gray-500">Loading patients...</p>}
+        {error && <p className="text-red-600">{error}</p>}
+        {!loading && !error && (
+          <ul className="flex flex-col gap-3 list-none p-0 m-0">
+            {patients.map((patient) => (
+              <li key={patient.userId}>
+                <Link
+                  href={`/patients/${patient.userId}`}
+                  className="block p-4 bg-white border border-gray-200 rounded-xl hover:border-blue-300 hover:shadow-sm transition-all no-underline text-inherit"
+                >
+                  <strong className="text-gray-900 text-base block">{patient.username}</strong>
+                  <p className="text-gray-600 text-sm mt-1 mb-0">{patient.email}</p>
+                  <p className="text-gray-500 text-sm mb-0">Phone: {patient.phoneNumber ?? 'N/A'}</p>
+                  <p className="text-blue-600 text-sm mt-2 mb-0">View patient details →</p>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
     </main>
   );
 }

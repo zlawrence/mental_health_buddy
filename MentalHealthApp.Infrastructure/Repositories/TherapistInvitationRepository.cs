@@ -1,12 +1,13 @@
-using MongoDB.Driver;
+using MentalHealthApp.Application.Services;
 using MentalHealthApp.Domain.Entities;
 using MentalHealthApp.Domain.Repositories;
+using MongoDB.Driver;
 
 namespace MentalHealthApp.Infrastructure.Repositories;
 
 public class TherapistInvitationRepository : MongoRepository<TherapistInvitation>, ITherapistInvitationRepository
 {
-    public TherapistInvitationRepository(IMongoCollection<TherapistInvitation> collection) : base(collection)
+    public TherapistInvitationRepository(IMongoCollection<TherapistInvitation> collection, IResilienceAuditLogger auditLogger) : base(collection, auditLogger)
     {
     }
 

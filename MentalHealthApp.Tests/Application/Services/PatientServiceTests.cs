@@ -15,6 +15,7 @@ public class PatientServiceTests
     private Mock<IPatientProfileRepository> _patientProfileRepositoryMock;
     private Mock<IGuardRailRepository> _guardRailRepositoryMock;
     private Mock<ITherapistInvitationRepository> _invitationRepositoryMock;
+    private Mock<IEmailQueue> _emailQueueMock;
     private PatientService _patientService;
 
     [SetUp]
@@ -24,12 +25,15 @@ public class PatientServiceTests
         _patientProfileRepositoryMock = new Mock<IPatientProfileRepository>();
         _guardRailRepositoryMock = new Mock<IGuardRailRepository>();
         _invitationRepositoryMock = new Mock<ITherapistInvitationRepository>();
+        _emailQueueMock = new Mock<IEmailQueue>();
 
         _patientService = new PatientService(
             _userRepositoryMock.Object,
             _patientProfileRepositoryMock.Object,
             _guardRailRepositoryMock.Object,
-            _invitationRepositoryMock.Object);
+            _invitationRepositoryMock.Object,
+            _emailQueueMock.Object,
+            "https://localhost");
     }
 
     [Test]

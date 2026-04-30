@@ -6,7 +6,7 @@ namespace MentalHealthApp.Infrastructure.Repositories;
 
 public class AuditLogRepository : MongoRepository<AuditLog>, IAuditLogRepository
 {
-    public AuditLogRepository(IMongoCollection<AuditLog> collection) : base(collection)
+    public AuditLogRepository(IMongoCollection<AuditLog> collection) : base(collection, null)
     {
     }
 

@@ -18,7 +18,7 @@ public class SubscriptionService : ISubscriptionService
         IUserRepository userRepository,
         IPaymentGateway paymentGateway,
         string successUrl,
-        string cancelUrl)
+        string cancelUrl )
     {
         _subscriptionRepository = subscriptionRepository;
         _userRepository = userRepository;
@@ -63,6 +63,13 @@ public class SubscriptionService : ISubscriptionService
         var (sessionId, sessionUrl) = await _paymentGateway.CreateCheckoutSessionAsync(
             customerId, _successUrl, _cancelUrl, patientUserId, cancellationToken);
 
+        SubscriptionStatus subscriptionStatus = SubscriptionStatus.Pending;
+
+        if (_paymentGateway.IsDevelopment)
+        {
+            subscriptionStatus = SubscriptionStatus.Active;
+        }
+
         if (existing == null)
         {
             var subscription = new Subscription
@@ -70,7 +77,7 @@ public class SubscriptionService : ISubscriptionService
                 PatientUserId = patientUserId,
                 StripeCustomerId = customerId,
                 StripeCheckoutSessionId = sessionId,
-                Status = SubscriptionStatus.Pending
+                Status = subscriptionStatus
             };
             await _subscriptionRepository.AddAsync(subscription, cancellationToken);
         }
@@ -78,7 +85,7 @@ public class SubscriptionService : ISubscriptionService
         {
             existing.StripeCustomerId = customerId;
             existing.StripeCheckoutSessionId = sessionId;
-            existing.Status = SubscriptionStatus.Pending;
+            existing.Status = subscriptionStatus;
             existing.UpdatedAt = DateTime.UtcNow;
             await _subscriptionRepository.UpdateAsync(existing, cancellationToken);
         }

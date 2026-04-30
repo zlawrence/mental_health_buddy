@@ -1,47 +1,56 @@
 using MentalHealthApp.Application.Services;
+using MentalHealthApp.fx.Classes.Abstract;
+using MentalHealthApp.Infrastructure.Resilience;
+using Polly;
 using Stripe;
 using Stripe.Checkout;
-using MentalHealthApp.fx.Classes.Abstract;
 
 namespace MentalHealthApp.Infrastructure.Services;
 
 public class StripeGateway : PaymentGateway, IPaymentGateway
 {
     private readonly string _secretKey;
-    private readonly string _environment = "dev";
+    private readonly ResiliencePipeline _pipeline;
 
-    public StripeGateway(string secretKey, string gatewayEnvironment) : base(gatewayEnvironment)
+    public StripeGateway(string secretKey, string gatewayEnvironment, ApiResiliencePipelineProvider pipelineProvider)
+        : base(gatewayEnvironment)
     {
         _secretKey = secretKey;
+        _pipeline = pipelineProvider.GetPipeline("Stripe");
     }
 
     public async Task<string> CreateCustomerAsync(string email, string patientUserId, CancellationToken cancellationToken = default)
     {
         StripeConfiguration.ApiKey = _secretKey;
+
+        if (IsDevelopment)
+            return new Guid().ToString();
+
         var options = new CustomerCreateOptions
         {
             Email = email,
             Metadata = new Dictionary<string, string> { { "patientUserId", patientUserId } }
         };
 
-        // If we're using development mode, don't contact the stripe service
-        if (!this.IsDevelopment) { 
-            var service = new CustomerService();
-            var customer = await service.CreateAsync(options, cancellationToken: cancellationToken);
-            return customer.Id;
-        }
-        else
+        return await _pipeline.ExecuteAsync(async ct =>
         {
-            // Return a fake id
-            return new Guid().ToString();
-        }
+            var service = new CustomerService();
+            var customer = await service.CreateAsync(options, cancellationToken: ct);
+            return customer.Id;
+        }, cancellationToken);
     }
 
     public async Task<(string SessionId, string SessionUrl)> CreateCheckoutSessionAsync(
         string customerId, string successUrl, string cancelUrl, string patientUserId, CancellationToken cancellationToken = default)
     {
-
         StripeConfiguration.ApiKey = _secretKey;
+
+        if (IsDevelopment)
+        {
+            string fakeId = new Guid().ToString();
+            return (fakeId, $"localhost/{fakeId}");
+        }
+
         var options = new SessionCreateOptions
         {
             Customer = customerId,
@@ -65,26 +74,25 @@ public class StripeGateway : PaymentGateway, IPaymentGateway
             Metadata = new Dictionary<string, string> { { "patientUserId", patientUserId } }
         };
 
-        if (this.IsDevelopment){
-            // Return a fake session id and url
-            string fakeId = new Guid().ToString();
-            return (fakeId, "localhost${fakeId}");
-
-        }
-        else {
+        return await _pipeline.ExecuteAsync(async ct =>
+        {
             var service = new SessionService();
-            var session = await service.CreateAsync(options, cancellationToken: cancellationToken);
+            var session = await service.CreateAsync(options, cancellationToken: ct);
             return (session.Id, session.Url);
-        }
+        }, cancellationToken);
     }
 
     public async Task CancelSubscriptionAtPeriodEndAsync(string stripeSubscriptionId, CancellationToken cancellationToken = default)
     {
         StripeConfiguration.ApiKey = _secretKey;
-        var service = new Stripe.SubscriptionService();
-        await service.UpdateAsync(stripeSubscriptionId, new SubscriptionUpdateOptions
+
+        await _pipeline.ExecuteAsync(async ct =>
         {
-            CancelAtPeriodEnd = true
-        }, cancellationToken: cancellationToken);
+            var service = new Stripe.SubscriptionService();
+            await service.UpdateAsync(stripeSubscriptionId, new SubscriptionUpdateOptions
+            {
+                CancelAtPeriodEnd = true
+            }, cancellationToken: ct);
+        }, cancellationToken);
     }
 }
